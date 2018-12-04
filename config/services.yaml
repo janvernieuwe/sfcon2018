@@ -42,7 +42,12 @@ services:
     HTMLPurifier:
         class: 'HTMLPurifier'
         arguments:
-            - '@HTMLPurifier_Config'
+            - '@purifierConfig'
+
+    purifierConfig:
+        class: HTMLPurifier_Config
+        factory: ['HTMLPurifier_Config', 'create']
+        arguments: [{'Cache.DefinitionImpl': null}]
 
     Markdown:
         class: 'App\Utils\Markdown'
