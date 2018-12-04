@@ -15,6 +15,7 @@ use App\Entity\Comment;
 use App\Entity\Post;
 use App\Events;
 use App\Form\CommentType;
+use App\Repository\ChainPostRepository;
 use App\Repository\PostRepository;
 use App\Repository\TagRepository;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Cache;
@@ -69,8 +70,14 @@ class BlogController extends AbstractController
      * value given in the route.
      * See https://symfony.com/doc/current/bundles/SensioFrameworkExtraBundle/annotations/converters.html
      */
-    public function postShow(Post $post): Response
+    public function postShow(string $postName): Response
     {
+        $postRepo = new ChainPostRepository();
+        $postRepo->add($this->get('App\Repository\RedisPostRepository'));
+        $postRepo->add($this->get('App\Repository\PostRepository'));
+
+        $postRepo->getOneBySlug($postName);
+
         // Symfony's 'dump()' function is an improved version of PHP's 'var_dump()' but
         // it's not available in the 'prod' environment to prevent leaking sensitive information.
         // It can be used both in PHP files and Twig templates, but it requires to

@@ -29,11 +29,16 @@ use Pagerfanta\Pagerfanta;
  * @author Javier Eguiluz <javier.eguiluz@gmail.com>
  * @author Yonel Ceruto <yonelceruto@gmail.com>
  */
-class PostRepository extends ServiceEntityRepository
+class PostRepository extends ServiceEntityRepository implements PostRepositoryInterface
 {
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, Post::class);
+    }
+
+    public function getOneBySlug(string $slug): ?Post
+    {
+        $this->findOneBy(['slug' => $slug]);
     }
 
     public function findLatest(int $page = 1, Tag $tag = null): Pagerfanta
