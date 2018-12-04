@@ -18,6 +18,8 @@ use App\Form\CommentType;
 use App\Repository\ChainPostRepository;
 use App\Repository\PostRepository;
 use App\Repository\TagRepository;
+use App\Utils\CommentConstructor;
+use App\Utils\CommentService;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Cache;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\ParamConverter;
@@ -99,31 +101,19 @@ class BlogController extends AbstractController
      */
     public function commentNew(Request $request, Post $post, EventDispatcherInterface $eventDispatcher): Response
     {
-        $comment = new Comment();
-        $comment->setAuthor($this->getUser());
-        $post->addComment($comment);
+        /** @var CommentService $commentService */
+        $commentService = $this->get('CommentService');
+
+        /** @var CommentConstructor $commentConstructor */
+        $commentConstructor = $this->get('CommentConstructor');
+
+        $comment = $commentConstructor->buildCommentForPostFromForm($this->getUser(), $post);
 
         $form = $this->createForm(CommentType::class, $comment);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $em = $this->getDoctrine()->getManager();
-            $em->persist($comment);
-            $em->flush();
-
-            // When triggering an event, you can optionally pass some information.
-            // For simple applications, use the GenericEvent object provided by Symfony
-            // to pass some PHP variables. For more complex applications, define your
-            // own event object classes.
-            // See https://symfony.com/doc/current/components/event_dispatcher/generic_event.html
-            $event = new GenericEvent($comment);
-
-            // When an event is dispatched, Symfony notifies it to all the listeners
-            // and subscribers registered to it. Listeners can modify the information
-            // passed in the event and they can even modify the execution flow, so
-            // there's no guarantee that the rest of this controller will be executed.
-            // See https://symfony.com/doc/current/components/event_dispatcher.html
-            $eventDispatcher->dispatch(Events::COMMENT_CREATED, $event);
+            $commentService->saveComment($comment);
 
             return $this->redirectToRoute('blog_post', ['slug' => $post->getSlug()]);
         }
