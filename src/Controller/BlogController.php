@@ -17,6 +17,7 @@ use App\Events;
 use App\Form\CommentType;
 use App\Repository\ChainPostRepository;
 use App\Repository\PostRepository;
+use App\Repository\RedisPostRepository;
 use App\Repository\TagRepository;
 use App\Utils\CommentConstructor;
 use App\Utils\CommentService;
@@ -40,6 +41,28 @@ use Symfony\Component\Routing\Annotation\Route;
  */
 class BlogController extends AbstractController
 {
+    /**
+     * @var CommentService
+     */
+    private $commentService;
+
+    /**
+     * @var CommentConstructor
+     */
+    private $commentConstructor;
+
+    /**
+     * @var RedisPostRepository
+     */
+    private $redisPostRepository;
+
+    public function __construct(CommentService $commentService, CommentConstructor $commentConstructor, RedisPostRepository $redisPostRepository)
+    {
+        $this->commentService = $commentService;
+        $this->commentConstructor = $commentConstructor;
+        $this->redisPostRepository = $redisPostRepository;
+    }
+
     /**
      * @Route("/", defaults={"page": "1", "_format"="html"}, methods={"GET"}, name="blog_index")
      * @Route("/rss.xml", defaults={"page": "1", "_format"="xml"}, methods={"GET"}, name="blog_rss")
@@ -75,8 +98,8 @@ class BlogController extends AbstractController
     public function postShow(string $postName): Response
     {
         $postRepo = new ChainPostRepository();
-        $postRepo->add($this->get('App\Repository\RedisPostRepository'));
-        $postRepo->add($this->get('App\Repository\PostRepository'));
+        $postRepo->add($this->redisPostRepository);
+        $postRepo->add($this->getDoctrine()->getRepository('Post'));
 
         $postRepo->getOneBySlug($postName);
 
@@ -101,19 +124,13 @@ class BlogController extends AbstractController
      */
     public function commentNew(Request $request, Post $post, EventDispatcherInterface $eventDispatcher): Response
     {
-        /** @var CommentService $commentService */
-        $commentService = $this->get('CommentService');
-
-        /** @var CommentConstructor $commentConstructor */
-        $commentConstructor = $this->get('CommentConstructor');
-
-        $comment = $commentConstructor->buildCommentForPostFromForm($this->getUser(), $post);
+        $comment = $this->commentConstructor->buildCommentForPostFromForm($this->getUser(), $post);
 
         $form = $this->createForm(CommentType::class, $comment);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $commentService->saveComment($comment);
+            $this->commentService->saveComment($comment);
 
             return $this->redirectToRoute('blog_post', ['slug' => $post->getSlug()]);
         }
