@@ -41,4 +41,11 @@ services:
 
     HTMLPurifier:
         class: 'HTMLPurifier'
-        autowire: true
+        arguments:
+            - '@HTMLPurifier_Config'
+
+    Markdown:
+        class: 'App\Utils\Markdown'
+        arguments:
+            - '@Parsedown'
+            - '@HTMLPurifier'
