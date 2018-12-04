@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace App\Utils;
 
 use App\Entity\Comment;
-use Symfony\Bridge\Doctrine\ManagerRegistry;
+use Doctrine\Common\Persistence\ManagerRegistry;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class CommentService
